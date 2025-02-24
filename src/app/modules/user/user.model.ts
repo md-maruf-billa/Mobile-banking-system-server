@@ -16,7 +16,7 @@ const userSchema = new Schema<TUser>(
       required: true
     },
     pin: {
-      type: Number,
+      type: String,
       required: true
     },
     nid: {

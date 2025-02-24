@@ -3,7 +3,7 @@ import { TRole } from '../../types'
 
 export type TUser = {
   name: string
-  pin: number
+  pin: string
   mobileNo: string
   email: string
   accountType: TRole

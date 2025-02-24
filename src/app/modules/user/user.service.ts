@@ -1,5 +1,7 @@
+import config from '../../config'
 import { TUser } from './user.interface'
 import { UserModel } from './user.model'
+import bcrypt from 'bcrypt'
 
 const saveUserDataIntoDB = async (payload: TUser) => {
   // Check if the user already exists
@@ -25,8 +27,11 @@ const saveUserDataIntoDB = async (payload: TUser) => {
     throw new Error(errorMessage)
   }
 
+  // hash password for sucurey
+  const hasPin = bcrypt.hashSync(payload?.pin, Number(config.bycript_solt))
+
   // Create a new user if no duplicate is found
-  return await UserModel.create(payload)
+  return await UserModel.create({ ...payload, pin: hasPin })
 }
 
 export const userService = {
