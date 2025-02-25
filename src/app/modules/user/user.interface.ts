@@ -9,7 +9,7 @@ export type TUser = {
   email: string
   accountType: TRole
   nid: string
-  balance?: number
+  balance: number
   isDeleted: boolean
 }
 export interface UserInterfaceModel extends Model<TUser> {

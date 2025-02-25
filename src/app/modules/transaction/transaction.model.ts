@@ -21,6 +21,10 @@ const transactionSchema = new Schema<TTransaction>(
       type: String,
       required: false
     },
+    transactionFee: {
+      type: Number,
+      required: true
+    },
     payType: {
       type: String,
       required: true,

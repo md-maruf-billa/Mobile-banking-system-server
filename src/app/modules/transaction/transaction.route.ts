@@ -10,7 +10,13 @@ transactionRouter.post(
   '/send-money',
   auth('user'),
   validateRequest(transactionValidations.sendMoneyValidation),
-  transactionController.setMoney
+  transactionController.sendMoney
+)
+transactionRouter.post(
+  '/cash-out',
+  auth('user'),
+  validateRequest(transactionValidations.cashOutValidation),
+  transactionController.cashOut
 )
 
 export default transactionRouter

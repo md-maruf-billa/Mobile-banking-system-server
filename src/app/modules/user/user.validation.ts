@@ -10,7 +10,8 @@ const createUserValidationSchema = z.object({
     .regex(/^[0-9]{6}$/, 'PIN must be a 6-digit number'),
   nid: z.string().min(1, 'NID is required'),
   accountType: z.enum(['admin', 'agent', 'user']),
-  isDeleted: z.boolean().optional()
+  isDeleted: z.boolean().optional(),
+  balance: z.number().optional()
 })
 
 export const userValidations = {
