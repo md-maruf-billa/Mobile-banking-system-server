@@ -17,8 +17,16 @@ const cashOut = catchAsync(async (req, res) => {
   )
   sendResponse(res, status.OK, 'Cash Out successful', result)
 })
+const cashIn = catchAsync(async (req, res) => {
+  const result = await transactionService.saveCashInInfoIntoDB(
+    req.body,
+    req?.user
+  )
+  sendResponse(res, status.OK, 'Cash Out successful', result)
+})
 
 export const transactionController = {
   sendMoney,
-  cashOut
+  cashOut,
+  cashIn
 }

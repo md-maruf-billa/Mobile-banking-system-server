@@ -18,5 +18,11 @@ transactionRouter.post(
   validateRequest(transactionValidations.cashOutValidation),
   transactionController.cashOut
 )
+transactionRouter.post(
+  '/cash-in',
+  auth('agent'),
+  validateRequest(transactionValidations.cashInValidation),
+  transactionController.cashIn
+)
 
 export default transactionRouter

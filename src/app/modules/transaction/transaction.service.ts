@@ -19,20 +19,24 @@ const saveSendMoneyInfoIntoDB = async (
   session.startTransaction()
 
   try {
-    const isExistUser = await UserModel.isUserExist(user.userId)
-    const isExistReciver = await UserModel.findById(payload.reciverId)
-    if (isExistReciver?.accountType !== 'user') {
-      throw new Error('Send Money only possible personal account not agent')
+    // finding sender and reciver information
+    const senderInfo = await UserModel.findOne({
+      $or: [{ email: payload.senderId }, { mobileNo: payload.senderId }]
+    }).session(session)
+    const reciverInfo = await UserModel.findOne({
+      $or: [{ email: payload.reciverId }, { mobileNo: payload.reciverId }]
+    }).session(session)
+
+    if (reciverInfo?.accountType !== 'user') {
+      throw new Error('Send Money only possible personal type account')
     }
-    if (!isExistUser || !isExistReciver) {
+    if (!senderInfo || !reciverInfo) {
       throw new Error('User not found!!')
     }
-    if (
-      new ObjectId(isExistUser._id).equals(new ObjectId(isExistReciver._id))
-    ) {
+    if (new ObjectId(senderInfo._id).equals(new ObjectId(reciverInfo._id))) {
       throw new Error('Transaction to the same account is not possible')
     }
-    if (!new ObjectId(isExistUser._id).equals(new ObjectId(payload.senderId))) {
+    if (!new ObjectId(senderInfo._id).equals(new ObjectId(payload.senderId))) {
       throw new Error('You are not authorized to access this account')
     }
 
@@ -40,7 +44,7 @@ const saveSendMoneyInfoIntoDB = async (
     if (isNaN(amount) || amount < 50) {
       throw new Error('Amount must be at least 50 TK.')
     }
-    if (Number(isExistUser?.balance) < finalAmount) {
+    if (Number(senderInfo?.balance) < finalAmount) {
       throw new Error('Insufficient Balance')
     }
     if (amount > 100) {
@@ -53,19 +57,19 @@ const saveSendMoneyInfoIntoDB = async (
 
     //  Deduct balance from sender
     await UserModel.findByIdAndUpdate(
-      payload.senderId,
+      senderInfo._id,
       { $inc: { balance: -finalAmount } },
       { session }
     )
 
     await UserModel.findByIdAndUpdate(
-      payload.reciverId,
+      reciverInfo._id,
       { $inc: { balance: amount } },
       { session }
     )
     const transactionData: TTransaction = {
-      senderId: new mongoose.Types.ObjectId(payload.senderId),
-      reciverId: new mongoose.Types.ObjectId(payload.reciverId),
+      senderId: new mongoose.Types.ObjectId(senderInfo._id),
+      reciverId: new mongoose.Types.ObjectId(reciverInfo._id),
       amount: payload.amount,
       payType: payload.payType,
       transactionFee: transFee
@@ -96,30 +100,35 @@ const saveCashOutInfoIntoDB = async (
   session.startTransaction()
 
   try {
-    const isExistUser = await UserModel.isUserExist(user?.userId)
-    const isExistAgent = await UserModel.findById(payload.reciverId).session(
-      session
-    )
+    const userInfo = await UserModel.findOne({
+      $or: [{ email: payload.senderId }, { mobileNo: payload.senderId }]
+    }).session(session)
+    const agentInfo = await UserModel.findOne({
+      $or: [{ email: payload.reciverId }, { mobileNo: payload.reciverId }]
+    }).session(session)
 
-    if (!isExistUser || !isExistAgent) {
+    if (!userInfo || !agentInfo) {
       throw new Error('User or agent not found!')
     }
-    if (isExistAgent.accountType !== 'agent') {
+    if (agentInfo.accountType !== 'agent') {
       throw new Error('Cash-out is only possible through an authorized agent.')
     }
-    if (!new ObjectId(isExistUser._id).equals(new ObjectId(payload.senderId))) {
+    if (!new ObjectId(userInfo._id).equals(new ObjectId(payload.senderId))) {
       throw new Error('You are not authorized to perform this transaction.')
+    }
+    if (new ObjectId(userInfo._id).equals(new ObjectId(agentInfo._id))) {
+      throw new Error('Transaction to the same account is not possible')
     }
     if (isNaN(payload.amount) || payload.amount < 50) {
       throw new Error('Amount must be at least 50 TK.')
     }
-    if (isExistUser.balance < totalDeduction) {
+    if (userInfo.balance < totalDeduction) {
       throw new Error('Insufficient balance.')
     }
 
     // Deduct total amount from user
     await UserModel.findByIdAndUpdate(
-      payload.senderId,
+      userInfo._id,
       { $inc: { balance: -totalDeduction } },
       { session }
     )
@@ -127,7 +136,7 @@ const saveCashOutInfoIntoDB = async (
     const adminAddableAmount = totalDeduction + agentIncome
     // Add amount to agent's balance
     await UserModel.findByIdAndUpdate(
-      payload.reciverId,
+      agentInfo._id,
       { $inc: { balance: adminAddableAmount } },
       { session }
     )
@@ -141,8 +150,8 @@ const saveCashOutInfoIntoDB = async (
 
     // Create transaction record
     const transactionData: TTransaction = {
-      senderId: new ObjectId(payload.senderId),
-      reciverId: new ObjectId(payload.reciverId),
+      senderId: new ObjectId(userInfo._id),
+      reciverId: new ObjectId(agentInfo._id),
       amount: payload.amount,
       payType: payload.payType,
       transactionFee: cashOutFee
@@ -160,7 +169,73 @@ const saveCashOutInfoIntoDB = async (
   }
 }
 
+// CASH IN
+const saveCashInInfoIntoDB = async (
+  payload: TTransaction,
+  user: JwtPayload
+) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
+  try {
+    const agentInfo = await UserModel.findOne({
+      $or: [{ email: payload?.senderId }, { mobileNo: payload?.senderId }]
+    })
+    const reciverInfo = await UserModel.findOne({
+      $or: [{ email: payload?.reciverId }, { mobileNo: payload?.reciverId }]
+    })
+
+    if (!reciverInfo || !agentInfo) {
+      throw new Error('User or agent not found!')
+    }
+    if (new ObjectId(reciverInfo._id).equals(new ObjectId(agentInfo._id))) {
+      throw new Error('Transaction to the same account is not possible')
+    }
+    if (reciverInfo.accountType !== 'user') {
+      throw new Error('Cash-in must be need a personal account')
+    }
+    if (isNaN(payload.amount) || payload.amount < 50) {
+      throw new Error('Amount must be at least 50 TK.')
+    }
+    if (agentInfo.balance < payload.amount) {
+      throw new Error('Insufficient balance.')
+    }
+    // Deduct agent balance
+    await UserModel.findByIdAndUpdate(
+      agentInfo._id,
+      { $inc: { totalMoney: -payload.amount } },
+      { session }
+    )
+    // Add balance to the user
+    await UserModel.findByIdAndUpdate(
+      reciverInfo._id,
+      { $inc: { balance: payload.amount } },
+      { session }
+    )
+
+    // Create transaction record
+    const transactionData: TTransaction = {
+      senderId: new ObjectId(agentInfo._id),
+      reciverId: new ObjectId(reciverInfo._id),
+      amount: payload.amount,
+      payType: payload.payType,
+      transactionFee: 0
+    }
+
+    const result = await TransactionModel.create(transactionData)
+
+    await session.commitTransaction()
+    session.endSession()
+    return result
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    throw error
+  }
+}
+
 export const transactionService = {
   saveSendMoneyInfoIntoDB,
-  saveCashOutInfoIntoDB
+  saveCashOutInfoIntoDB,
+  saveCashInInfoIntoDB
 }
