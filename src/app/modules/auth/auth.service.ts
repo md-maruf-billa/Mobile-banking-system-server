@@ -6,7 +6,7 @@ import config from '../../config'
 import ms from 'ms'
 
 const loginUserFromDB = async (payload: TLogin) => {
-  const isUserExist = await UserModel.isUserExist(payload.email!)
+  const isUserExist = await UserModel.isUserExist(payload.accountNo!)
   if (!isUserExist) {
     throw new Error('User not found')
   }

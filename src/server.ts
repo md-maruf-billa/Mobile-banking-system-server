@@ -6,7 +6,7 @@ async function main () {
   try {
     await mongoose.connect(config.database_uri)
     app.listen(config.server_port, () => {
-      console.log(`Book Server listening on port ${config.server_port}`)
+      console.log(`Bank Server listening on port ${config.server_port}`)
     })
   } catch (err: any) {
     throw new Error(err)

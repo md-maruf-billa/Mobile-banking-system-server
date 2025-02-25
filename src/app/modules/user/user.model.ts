@@ -31,6 +31,10 @@ const userSchema = new Schema<TUser>(
     isDeleted: {
       type: Boolean,
       default: false
+    },
+    balance: {
+      type: Number,
+      default: 0
     }
   },
   {

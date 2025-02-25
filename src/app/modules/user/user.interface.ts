@@ -2,12 +2,14 @@ import { Model } from 'mongoose'
 import { TRole } from '../../types'
 
 export type TUser = {
+  _id?: string
   name: string
   pin: string
   mobileNo: string
   email: string
   accountType: TRole
   nid: string
+  balance?: number
   isDeleted: boolean
 }
 export interface UserInterfaceModel extends Model<TUser> {

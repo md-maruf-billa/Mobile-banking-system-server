@@ -1,5 +1,4 @@
 export type TLogin = {
-  email?: string
-  mobileNo?: string
+  accountNo?: string
   pin: string
 }

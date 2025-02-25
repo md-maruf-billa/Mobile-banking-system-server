@@ -29,9 +29,20 @@ const saveUserDataIntoDB = async (payload: TUser) => {
 
   // hash password for sucurey
   const hasPin = bcrypt.hashSync(payload?.pin, Number(config.bycript_solt))
+  // add bonus indivisul account
+  let bonus = ''
+  if (payload.accountType == 'user') {
+    bonus = '40'
+  }
+  if (payload.accountType == 'agent') {
+    bonus = '100000'
+  }
+  if (payload.accountType == 'admin') {
+    bonus = '1000000'
+  }
 
   // Create a new user if no duplicate is found
-  return await UserModel.create({ ...payload, pin: hasPin })
+  return await UserModel.create({ ...payload, pin: hasPin, balance: bonus })
 }
 
 export const userService = {
