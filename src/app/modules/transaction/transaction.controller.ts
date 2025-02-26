@@ -22,11 +22,17 @@ const cashIn = catchAsync(async (req, res) => {
     req.body,
     req?.user
   )
-  sendResponse(res, status.OK, 'Cash Out successful', result)
+  sendResponse(res, status.OK, 'Cash In successful', result)
+})
+const getSingleTrans = catchAsync(async (req, res) => {
+  const { id } = req?.params
+  const result = await transactionService.getSingleTranxFromDB(id)
+  sendResponse(res, status.OK, 'Transaction retrived successful', result)
 })
 
 export const transactionController = {
   sendMoney,
   cashOut,
-  cashIn
+  cashIn,
+  getSingleTrans
 }

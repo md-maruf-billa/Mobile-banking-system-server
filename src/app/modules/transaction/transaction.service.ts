@@ -195,7 +195,10 @@ const saveCashInInfoIntoDB = async (
     const reciverInfo = await UserModel.findOne({
       $or: [{ email: payload?.reciverId }, { mobileNo: payload?.reciverId }]
     })
-
+    const isPasswordMatch = bcrypt.compareSync(payload?.pin, agentInfo?.pin!)
+    if (!isPasswordMatch) {
+      throw new Error('Incrrect Password')
+    }
     if (!agentInfo?.isActive) {
       throw new Error('Agent account not active')
     }
@@ -216,8 +219,8 @@ const saveCashInInfoIntoDB = async (
     }
     // Deduct agent balance
     await UserModel.findByIdAndUpdate(
-      agentInfo._id,
-      { $inc: { totalMoney: -payload.amount } },
+      agentInfo?._id,
+      { $inc: { balance: -payload?.amount } },
       { session }
     )
     // Add balance to the user
@@ -248,8 +251,16 @@ const saveCashInInfoIntoDB = async (
   }
 }
 
+const getSingleTranxFromDB = async (id: string) => {
+  const result = await TransactionModel.find({
+    $or: [{ reciverId: id }, { senderId: id }]
+  }).populate(['reciverId', 'senderId'])
+  return result
+}
+
 export const transactionService = {
   saveSendMoneyInfoIntoDB,
   saveCashOutInfoIntoDB,
-  saveCashInInfoIntoDB
+  saveCashInInfoIntoDB,
+  getSingleTranxFromDB
 }

@@ -3,6 +3,7 @@ import { TransactionModel } from '../transaction/transaction.model'
 import { TUser } from './user.interface'
 import { UserModel } from './user.model'
 import bcrypt from 'bcrypt'
+import { ObjectId } from 'mongodb'
 
 const saveUserDataIntoDB = async (payload: TUser) => {
   // Check if the user already exists
@@ -89,9 +90,43 @@ const getMyTransactionFromDB = async (userId: string) => {
     .sort({ createdAt: -1 })
   return res
 }
+const getAllTransactionFromDB = async () => {
+  const result = await TransactionModel.find()
+    .populate(['senderId', 'reciverId'])
+    .sort({ createdAt: -1 })
+  return result
+}
+const getAllUserFromDB = async () => {
+  const res = await UserModel.find().sort({ createdAt: -1 })
+  return res
+}
+const getallAgentFromDB = async () => {
+  const res = await UserModel.find({
+    accountType: 'agent'
+  }).sort({ createdAt: -1 })
+  return res
+}
+
+const updateUserStatusIntoDB = async (
+  userId: string,
+  payload: { status: boolean }
+) => {
+  const res = await UserModel.findByIdAndUpdate(
+    userId,
+    {
+      isActive: payload.status
+    },
+    { new: true }
+  )
+  return res
+}
 
 export const userService = {
   saveUserDataIntoDB,
   getMeFromDB,
-  getMyTransactionFromDB
+  getMyTransactionFromDB,
+  getAllTransactionFromDB,
+  getAllUserFromDB,
+  updateUserStatusIntoDB,
+  getallAgentFromDB
 }

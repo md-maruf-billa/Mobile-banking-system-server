@@ -25,4 +25,10 @@ transactionRouter.post(
   transactionController.cashIn
 )
 
+transactionRouter.get(
+  '/single-trans/:id',
+  auth('admin'),
+  transactionController.getSingleTrans
+)
+
 export default transactionRouter
