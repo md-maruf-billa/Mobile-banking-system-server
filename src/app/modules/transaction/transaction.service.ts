@@ -4,6 +4,7 @@ import { UserModel } from '../user/user.model'
 import { ObjectId } from 'mongodb'
 import mongoose from 'mongoose'
 import { TransactionModel } from './transaction.model'
+import bcrypt from 'bcrypt'
 
 const saveSendMoneyInfoIntoDB = async (
   payload: TTransaction,
@@ -26,7 +27,15 @@ const saveSendMoneyInfoIntoDB = async (
     const reciverInfo = await UserModel.findOne({
       $or: [{ email: payload.reciverId }, { mobileNo: payload.reciverId }]
     }).session(session)
+    // check password
+    const isPasswordMatch = bcrypt.compareSync(payload?.pin, senderInfo?.pin!)
+    if (!isPasswordMatch) {
+      throw new Error('Incrrect Password')
+    }
 
+    if (!reciverInfo) {
+      throw new Error('Reciver account not found!!')
+    }
     if (reciverInfo?.accountType !== 'user') {
       throw new Error('Send Money only possible personal type account')
     }
@@ -36,7 +45,7 @@ const saveSendMoneyInfoIntoDB = async (
     if (new ObjectId(senderInfo._id).equals(new ObjectId(reciverInfo._id))) {
       throw new Error('Transaction to the same account is not possible')
     }
-    if (!new ObjectId(senderInfo._id).equals(new ObjectId(payload.senderId))) {
+    if (senderInfo?.email !== user?.userId) {
       throw new Error('You are not authorized to access this account')
     }
 
@@ -67,9 +76,9 @@ const saveSendMoneyInfoIntoDB = async (
       { $inc: { balance: amount } },
       { session }
     )
-    const transactionData: TTransaction = {
-      senderId: new mongoose.Types.ObjectId(senderInfo._id),
-      reciverId: new mongoose.Types.ObjectId(reciverInfo._id),
+    const transactionData = {
+      senderId: senderInfo._id,
+      reciverId: reciverInfo._id,
       amount: payload.amount,
       payType: payload.payType,
       transactionFee: transFee
@@ -98,7 +107,6 @@ const saveCashOutInfoIntoDB = async (
 
   const session = await mongoose.startSession()
   session.startTransaction()
-
   try {
     const userInfo = await UserModel.findOne({
       $or: [{ email: payload.senderId }, { mobileNo: payload.senderId }]
@@ -107,15 +115,18 @@ const saveCashOutInfoIntoDB = async (
       $or: [{ email: payload.reciverId }, { mobileNo: payload.reciverId }]
     }).session(session)
 
+    const isPasswordMatch = bcrypt.compareSync(payload?.pin, userInfo?.pin!)
+    if (!isPasswordMatch) {
+      throw new Error('Incrrect Password')
+    }
+
     if (!userInfo || !agentInfo) {
       throw new Error('User or agent not found!')
     }
-    if (agentInfo.accountType !== 'agent') {
+    if (agentInfo.accountType !== 'agent' || !agentInfo.isActive) {
       throw new Error('Cash-out is only possible through an authorized agent.')
     }
-    if (!new ObjectId(userInfo._id).equals(new ObjectId(payload.senderId))) {
-      throw new Error('You are not authorized to perform this transaction.')
-    }
+
     if (new ObjectId(userInfo._id).equals(new ObjectId(agentInfo._id))) {
       throw new Error('Transaction to the same account is not possible')
     }
@@ -149,9 +160,9 @@ const saveCashOutInfoIntoDB = async (
     )
 
     // Create transaction record
-    const transactionData: TTransaction = {
-      senderId: new ObjectId(userInfo._id),
-      reciverId: new ObjectId(agentInfo._id),
+    const transactionData = {
+      senderId: userInfo._id,
+      reciverId: agentInfo._id,
       amount: payload.amount,
       payType: payload.payType,
       transactionFee: cashOutFee
@@ -185,6 +196,9 @@ const saveCashInInfoIntoDB = async (
       $or: [{ email: payload?.reciverId }, { mobileNo: payload?.reciverId }]
     })
 
+    if (!agentInfo?.isActive) {
+      throw new Error('Agent account not active')
+    }
     if (!reciverInfo || !agentInfo) {
       throw new Error('User or agent not found!')
     }
@@ -214,9 +228,9 @@ const saveCashInInfoIntoDB = async (
     )
 
     // Create transaction record
-    const transactionData: TTransaction = {
-      senderId: new ObjectId(agentInfo._id),
-      reciverId: new ObjectId(reciverInfo._id),
+    const transactionData = {
+      senderId: agentInfo._id,
+      reciverId: reciverInfo._id,
       amount: payload.amount,
       payType: payload.payType,
       transactionFee: 0

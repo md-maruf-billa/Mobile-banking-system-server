@@ -35,6 +35,10 @@ const userSchema = new Schema<TUser>(
     balance: {
       type: Number,
       default: 0
+    },
+    isActive: {
+      type: Boolean,
+      default: true
     }
   },
   {

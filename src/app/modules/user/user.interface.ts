@@ -11,6 +11,7 @@ export type TUser = {
   nid: string
   balance: number
   isDeleted: boolean
+  isActive: boolean
 }
 export interface UserInterfaceModel extends Model<TUser> {
   isUserExist(email: string): Promise<TUser>

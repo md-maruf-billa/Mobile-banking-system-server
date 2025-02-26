@@ -4,12 +4,12 @@ import { TTransaction } from './transaction.interface'
 const transactionSchema = new Schema<TTransaction>(
   {
     senderId: {
-      type: Schema.ObjectId,
+      type: String,
       required: true,
       ref: 'user'
     },
     reciverId: {
-      type: Schema.ObjectId,
+      type: String,
       required: true,
       ref: 'user'
     },
@@ -24,6 +24,10 @@ const transactionSchema = new Schema<TTransaction>(
     transactionFee: {
       type: Number,
       required: true
+    },
+    pin: {
+      type: String,
+      required: false
     },
     payType: {
       type: String,
